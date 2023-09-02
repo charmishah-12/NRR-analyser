@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9"
+      crossorigin="anonymous"
+    />
+    <link rel="stylesheet" type="text/css" href="css/form.css" />
+    <title>Team details</title>
+  </head>
+  <body>
+    <div class="container p-3 mb-2 bg-light text-dark">
+      <h2 class="text-center">NRR Analyser</h2>
+      <form action="/" method="post">
+        <label for="team-name" class="form-label">Your Team</label>
+        <select id="team-name" name="yourTeam" class="form-select" required>
+          <option value="">-Select your team-</option>
+          <option value="Chennai Super Kings">Chennai Super Kings</option>
+          <option value="Royal Challengers Bangalore">
+            Royal Challengers Bangalore
+          </option>
+          <option value="Delhi Capitals">Delhi Capitals</option>
+          <option value="Rajasthan Royals">Rajasthan Royals</option>
+          <option value="Mumbai Indians">Mumbai Indians</option></select
+        ><br />
+        <label for="opposition-name" class="form-label">Opposition Team</label>
+        <select
+          id="opposition-name"
+          name="oppositionTeam"
+          class="form-select"
+          required
+        >
+          <option value="">-Select the opposition team-</option>
+          <option value="Chennai Super Kings">Chennai Super Kings</option>
+          <option value="Royal Challengers Bangalore">
+            Royal Challengers Bangalore
+          </option>
+          <option value="Delhi Capitals">Delhi Capitals</option>
+          <option value="Rajasthan Royals">Rajasthan Royals</option>
+          <option value="Mumbai Indians">Mumbai Indians</option>
+        </select>
+        <br />
+        <label for="match-overs" class="form-label"
+          >How many overs match?</label
+        >
+        <input
+          type="number"
+          name="matchOvers"
+          id="match-overs"
+          class="form-control"
+          required
+        /><br />
+        <label for="desired-position" class="form-label"
+          >Desired Position for Your Team in Points Table</label
+        >
+        <input
+          type="number"
+          name="desiredPosition"
+          id="desired-position"
+          class="form-control"
+          required
+        /><br />
+        <label for="toss-result" class="form-label">Toss Result:</label>
+        <input
+          type="radio"
+          name="tossResult"
+          id="batting-first"
+          value="Batting First"
+          onclick="battingFirst()"
+          class="form-check-input"
+          required
+        />
+        <label for="batting-first" class="form-label">Batting First</label>
+        <input
+          type="radio"
+          name="tossResult"
+          id="bowling-first"
+          value="Bowling First"
+          onclick="bowlingFirst()"
+          class="form-check-input"
+          required
+        />
+        <label for="bowling-first" class="form-label">Bowling First</label
+        ><br />
+        <label for="runs-scored" class="form-label">Runs Scored</label>
+        <input
+          type="number"
+          name="runs"
+          id="runs-scored"
+          class="form-control"
+          disabled
+          required
+        /><br />
+        <label for="runs-to-chase" class="form-label">Runs to chase</label>
+        <input
+          type="number"
+          name="runs"
+          id="runs-to-chase"
+          class="form-control"
+          disabled
+          required
+        /><br />
+
+        <button type="submit" class="btn btn-primary">Submit</button>
+      </form>
+    </div>
+
+    <script>
+      function battingFirst() {
+        console.log("batting first func called");
+        document.getElementById("runs-to-chase").disabled = true;
+        document.getElementById("runs-scored").disabled = false;
+      }
+
+      function bowlingFirst() {
+        console.log("bowling first func called");
+        document.getElementById("runs-scored").disabled = true;
+        document.getElementById("runs-to-chase").disabled = false;
+      }
+    </script>
+  </body>
+</html>

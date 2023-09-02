@@ -1,0 +1,19 @@
+{
+  "name": "cricket-score-analyser",
+  "version": "1.0.0",
+  "description": "A tool to analyse the the scores and achieve the desired position",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon index.js"
+  },
+  "author": "Charmi Shah",
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "express": "^4.18.2"
+  }
+}
