@@ -1,6 +1,7 @@
 const express = require("express");
 const path = require("path");
 const bodyParser = require("body-parser"); //for accessing the body of the requests
+const { on } = require("events");
 const app = express(); //express application created
 const port = 3000; //port declaration
 
@@ -101,8 +102,28 @@ app.listen(port, () => {
 
 //function to get a team's data by passing teamname
 function getTeamData(teamName) {
-  console.log;
   return (teamdata = pointsTable.find((data) => data.team === teamName));
+}
+
+//function to add two overs
+function addOvers(num1, num2) {
+  const wholenum1 = num1.toString().split(".")[0];
+  const decinum1 = num1.toString().split(".")[1];
+  const wholenum2 = num2.toString().split(".")[0];
+  const decinum2 = num2.toString().split(".")[1];
+  var wholenum = +wholenum1 + +wholenum2;
+  var decinum = +decinum1 + +decinum2;
+
+  if (decinum > 5) {
+    var temp = Math.floor(decinum / 6);
+    wholenum += temp;
+    temp = decinum % 6;
+    decinum = 0;
+    decinum += temp;
+    return wholenum + decinum / 10;
+  } else {
+    return (num1 + num2).toFixed(1);
+  }
 }
 
 //function to evaluate the pending overs
@@ -110,7 +131,12 @@ function evaluateOvers(overs) {
   //input be a decimal number. For ex: 147.1
   const wholeNumber = overs.toString().split(".")[0]; //to get the whole number. Convert decimal number to string and then split from decimal point.
   const decimalNumber = overs.toString().split(".")[1]; //to get the number after decimal point. Split function returns an array of 2 numbers. For ex: ['147','1']
-  return (+wholeNumber + +decimalNumber / 6).toFixed(2); //toFixed is used to limit the number after decimal point at 2 digits
+
+  if (decimalNumber) {
+    return +(+wholeNumber + +decimalNumber / 6).toFixed(3); //toFixed is used to limit the number after decimal point at 2 digits
+  } else {
+    return overs; //returns the over if it is a whole number
+  }
 }
 
 //function to calculate the revised NRR according to the range of runs and overs obtained
@@ -125,23 +151,29 @@ function calculateNRR(
   flag //flag is passed to check whether range of runs or range of overs is passed as params. Also to avoid writting of each separate functions to calculate NRR for range of runs and overs
 ) {
   let totalRunsFor, totalOversFor, totalRunsAgainst, totalOversAgainst;
-  totalRunsFor = runsFor + +runs; //'+' sign before 'runs' variable is used to convert it from string to integer
-  totalOversAgainst = oversAgainst + +matchOvers;
+  totalRunsFor = runsFor + runs;
+  totalOversAgainst = addOvers(oversAgainst, matchOvers);
   totalOversAgainst = evaluateOvers(totalOversAgainst);
   if (flag === 1) {
     //flag = 1 is passed when range of runs is passed as params
-    totalOversFor = oversFor + +matchOvers;
+    totalOversFor = addOvers(oversFor, matchOvers);
     totalRunsAgainst = runsAgainst + runOrOverBoundDetails;
     totalOversFor = evaluateOvers(totalOversFor);
 
-    return totalRunsFor / totalOversFor - totalRunsAgainst / totalOversAgainst; //formula to calculate NRR = runsFor/oversFor - runsAgainst/oversAgainst
+    return (
+      totalRunsFor / totalOversFor -
+      totalRunsAgainst / totalOversAgainst
+    ).toFixed(3); //formula to calculate NRR = runsFor/oversFor - runsAgainst/oversAgainst
   } else {
-    //flag = 0 is passed when range of runs is passed as params
-    totalOversFor = oversFor + runOrOverBoundDetails;
-    totalRunsAgainst = runsAgainst + +runs;
+    //flag = 0 is passed when range of overs is passed as params
+    totalOversFor = addOvers(oversFor, runOrOverBoundDetails);
+    totalRunsAgainst = runsAgainst + runs;
     totalOversFor = evaluateOvers(totalOversFor);
 
-    return totalRunsFor / totalOversFor - totalRunsAgainst / totalOversAgainst;
+    return (
+      totalRunsFor / totalOversFor -
+      totalRunsAgainst / totalOversAgainst
+    ).toFixed(3);
   }
 }
 
@@ -151,121 +183,214 @@ function analyseCricketScore(
   matchOvers,
   desiredPosition,
   tossResult,
-  runs // here runs = runs scored or runs chased
+  runs
 ) {
-  const teamData = getTeamData(yourTeam); //gets the team data
-  const runsFor = teamData.runsFor;
-  const oversFor = teamData.oversFor;
-  const runsAgainst = teamData.runsAgainst;
-  const oversAgainst = teamData.oversAgainst;
-  const teamRank = teamData.rank;
+  const team = getTeamData(yourTeam); //get your team data
+  const oppTeam = getTeamData(oppositionTeam); //get opposition team data
+  let arr = []; //to store the range of runs and overs
+  let nrrLowerBound; //the lower bound NRR of your team
+  let nrrUpperBound; //the upper bound NRR of your team
 
-  //desired position should be greater than or equal to 1 and should not be equal to the team's rank
-  if (6 > +desiredPosition >= 1 && +desiredPosition !== teamRank) {
-    const nrrLowerBoundData = pointsTable.find(
-      //to get the data of the current team on the desiredPosition using find function
-      (data) => data.rank == desiredPosition
-    );
+  var onPosition = pointsTable.find(
+    //to get the data of the current team on the desiredPosition using find function
+    (data) => data.rank == desiredPosition
+  );
 
-    //to get the NRR lower bound value from the data obtained
-    const nrrLowerBoundValue = nrrLowerBoundData.nrr; //NRR lower bound value = NRR of the current team on the desired position
+  var upperPosition = pointsTable.find(
+    //to get the data of the team above the desiredPosition using find function
+    (data) => data.rank == +desiredPosition - 1
+  );
 
-    const nrrUpperBoundData = pointsTable.find(
-      //to get the data of the team one position above the desiredPosition using find function
-      (data) => data.rank == +desiredPosition - 1
-    );
-
-    const nrrUpperBoundValue = nrrUpperBoundData ? nrrUpperBoundData.nrr : 0; //NRR upper bound value = NRR of the team one position above the desired position
-    //NRR upper and lower bound values are calculated to get the range of runs and overs. As to reach the desired position, team's NRR cannot be greater than NRRupperbound.
-
+  //to check whether the entered desiredPosition is valid or not and whether the difference between the points on the desired position is less than or equal to 2 or not
+  if (
+    3 > onPosition.pts - team.pts &&
+    onPosition.pts - team.pts > -3 &&
+    team.rank !== +desiredPosition
+  ) {
+    //if the toss result is 'Batting First' then the range of runs to restrict the opposition team is being calculated
     if (tossResult === "Batting First") {
-      //if toss result is Batting first, range of runs can be calculated for the opposition team
       const flag = 1;
 
-      //formula to calculate runsUpperBound and runsLowerBound: NRR = runsFor/oversfor - runsagainst/oversagainst. Here, Value of runsagainst will give the lower and upper range of runs
-      const runsUpperBound = Math.ceil(
-        (+runs / +matchOvers - nrrLowerBoundValue) * +matchOvers
-      );
-      const runsLowerBound = Math.ceil(
-        (+runs / +matchOvers - nrrUpperBoundValue) * +matchOvers
-      );
+      //for loop is used to check on how many runs, the NRR of your team is maintained to be on the desired position
+      for (let i = runs; i > 0; i--) {
+        //Team NRR is calculated for runs from 0 to runs scored to check on which runs to restrict the opposition team
+        let teamNRR = calculateNRR(
+          team.runsFor,
+          team.oversFor,
+          +runs,
+          i, //here i is the runs ranging from 0 to runs scored
+          team.runsAgainst,
+          team.oversAgainst,
+          +matchOvers,
+          flag
+        );
 
-      //calculateNRR function called to calculate the range of revised NRR for the team after obtaining range of runs
-      const nrrLowerBound = calculateNRR(
-        runsFor,
-        oversFor,
-        runs,
-        runsUpperBound,
-        runsAgainst,
-        oversAgainst,
-        matchOvers,
+        //opposition team NRR is calculated for runs from 0 to runs scored to check on which runs the values are crossing the limits of upper or lower bound.
+        let oppositionTeamNRR = calculateNRR(
+          oppTeam.runsFor,
+          oppTeam.oversFor,
+          i,
+          +runs,
+          oppTeam.runsAgainst,
+          oppTeam.oversAgainst,
+          +matchOvers,
+          flag
+        );
+
+        //lowerPositionNRR is calculated to maintain the lower bound nrr to limit your team on the desired position
+        const lowerPositionNRR =
+          onPosition.team == oppTeam.team ? oppositionTeamNRR : onPosition.nrr;
+
+        //upperPositionNRR is calculated to maintain the upper bound nrr to limit your team on the desired position
+        const upperPositionNRR =
+          upperPosition.team == oppTeam.team
+            ? oppositionTeamNRR
+            : upperPosition.nrr;
+
+        //onPositionNRR is calculated to maintain your team to be on the desired position
+        const onPositionNRR = teamNRR;
+
+        //here the condition is checked that the team NRR should be less than the upper bound NRR and
+        //more than the lower bound NRR. If the condition satisfies then the value of i from the loop is pushed into the array.
+        if (
+          lowerPositionNRR < onPositionNRR &&
+          onPositionNRR < upperPositionNRR
+        ) {
+          arr.push(i);
+        }
+      }
+
+      nrrLowerBound = calculateNRR(
+        team.runsFor,
+        team.oversFor,
+        +runs,
+        arr[0], //here arr[0] is the highest run from the run range
+        team.runsAgainst,
+        team.oversAgainst,
+        +matchOvers,
         flag
       );
-      const nrrUpperBound = calculateNRR(
-        runsFor,
-        oversFor,
-        runs,
-        runsLowerBound,
-        runsAgainst,
-        oversAgainst,
-        matchOvers,
+      nrrUpperBound = calculateNRR(
+        team.runsFor,
+        team.oversFor,
+        +runs,
+        arr[arr.length - 1], //here arr[arr.length - 1] is the lowest run from the run range
+        team.runsAgainst,
+        team.oversAgainst,
+        +matchOvers,
         flag
       );
 
       console.log(
-        `${yourTeam} score ${runs} runs in ${matchOvers}, ${yourTeam} need to restrict ${oppositionTeam} between ${runsLowerBound} to ${runsUpperBound} runs in ${matchOvers} overs.`
+        `${yourTeam} score ${runs} runs in ${matchOvers}, ${yourTeam} need to restrict ${oppositionTeam} between ${
+          arr[arr.length - 1]
+        } to ${arr[0]} runs in ${matchOvers} overs.`
       );
+
       console.log(
         `Revised NRR of ${yourTeam} will be between ${nrrLowerBound} to ${nrrUpperBound}.`
       );
     } else {
-      //if toss result is Bowling first, range of overs can be calculated for your team to chase the runs
+      //this part of code is being executed when the value of toss result is 'Bowling First'
+
       const flag = 0;
 
-      //formula to calculate runsUpperBound and runsLowerBound: NRR = runsFor/oversfor - runsagainst/oversagainst. Here, Value of oversfor will give the lower and upper range of overs
-      const oversUpperBound = Math.round(
-        +runs / (nrrLowerBoundValue + +runs / +matchOvers)
-      );
-      const oversLowerBound = Math.round(
-        +runs / (nrrUpperBoundValue + +runs / +matchOvers)
-      );
+      //for loop is used to check on how many overs, the NRR of your team is maintained to be on the desired position
+      for (let i = matchOvers - 1; i > 0; i--) {
+        //for loop is used to loop inside the over. For ex: 18.1, 18.2, 18.3 ...
+        for (let j = 6; j > 0; j--) {
+          let over;
 
-      //calculateNRR function called to calculate the range of revised NRR for the team after obtaining range of overs
-      const nrrLowerBound = calculateNRR(
-        runsFor,
-        oversFor,
-        runs,
-        oversUpperBound,
-        runsAgainst,
-        oversAgainst,
-        matchOvers,
+          //if the value of j = 6, then according to overs when its 17.6 it's turned to 18
+          if (j === 6) {
+            over = i + 1;
+          } else {
+            over = i + j / 10;
+          }
+
+          //Team NRR is calculated for overs from 0 to oversplayed to check i how many least overs to chase the runs scored by the opposition team
+          let teamNRR = calculateNRR(
+            team.runsFor,
+            team.oversFor,
+            +runs,
+            over,
+            team.runsAgainst,
+            team.oversAgainst,
+            +matchOvers,
+            flag
+          );
+
+          //opposition team NRR is calculated for overs from 0 to overs played to check on which over the values are crossing the limits of upper or lower bound.
+          let oppositionTeamNRR = calculateNRR(
+            oppTeam.runsFor,
+            oppTeam.oversFor,
+            +runs,
+            +matchOvers,
+            oppTeam.runsAgainst,
+            oppTeam.oversAgainst,
+            over,
+            flag
+          );
+
+          //lowerPositionNRR is calculated to maintain the lower bound nrr to limit your team on the desired position
+          const lowerPositionNRR =
+            onPosition.team == oppTeam.team
+              ? oppositionTeamNRR
+              : onPosition.nrr;
+
+          //upperPositionNRR is calculated to maintain the upper bound nrr to limit your team on the desired position
+          const upperPositionNRR =
+            upperPosition.team == oppTeam.team
+              ? oppositionTeamNRR
+              : upperPosition.nrr;
+
+          //onPositionNRR is calculated to maintain your team to be on the desired position
+          const onPositionNRR = teamNRR;
+
+          //here the condition is checked that the team NRR should be less than the upper bound NRR and
+          //more than the lower bound NRR. If the condition satisfies then the value of over from the loop is pushed into the array.
+          if (
+            lowerPositionNRR < onPositionNRR &&
+            onPositionNRR < upperPositionNRR
+          ) {
+            arr.push(over);
+          }
+        }
+      }
+
+      nrrLowerBound = calculateNRR(
+        team.runsFor,
+        team.oversFor,
+        +runs,
+        arr[0], //here arr[0] is the highest over from the over range
+        team.runsAgainst,
+        team.oversAgainst,
+        +matchOvers,
         flag
       );
-      const nrrUpperBound = calculateNRR(
-        runsFor,
-        oversFor,
-        runs,
-        oversLowerBound,
-        runsAgainst,
-        oversAgainst,
-        matchOvers,
+
+      nrrUpperBound = calculateNRR(
+        team.runsFor,
+        team.oversFor,
+        +runs,
+        arr[arr.length - 1], //here arr[arr.length - 1] is the lowest over from the over range
+        team.runsAgainst,
+        team.oversAgainst,
+        +matchOvers,
         flag
       );
 
       console.log(
-        `${yourTeam} need to chase ${runs} between ${oversLowerBound} to ${oversUpperBound} overs.`
+        `${yourTeam} need to chase ${runs} between ${arr[arr.length - 1]} to ${
+          arr[0]
+        } overs.`
       );
+
       console.log(
         `Revised NRR of ${yourTeam} will be between ${nrrLowerBound} to ${nrrUpperBound}.`
       );
     }
-  } else if (+desiredPosition === teamRank) {
-    //if the desiredPosition and the team's rank is same
-    console.log(
-      "desired position cannot be same as the rank in the tournament points table"
-    );
   } else {
-    //if the desired position is number is less than 1 and grater than 5
     console.log("Desired position is not valid!");
   }
 }
