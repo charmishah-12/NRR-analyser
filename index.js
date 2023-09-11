@@ -166,10 +166,11 @@ function calculateNRR(
     ).toFixed(3); //formula to calculate NRR = runsFor/oversFor - runsAgainst/oversAgainst
   } else {
     //flag = 0 is passed when range of overs is passed as params
+    // console.log("Runs",runs, typeof runs)
     totalOversFor = addOvers(oversFor, runOrOverBoundDetails);
     totalRunsAgainst = runsAgainst + runs;
     totalOversFor = evaluateOvers(totalOversFor);
-
+    console.log("TotalRuns for", totalRunsFor, totalOversFor, totalRunsAgainst, totalOversAgainst)
     return (
       totalRunsFor / totalOversFor -
       totalRunsAgainst / totalOversAgainst
@@ -310,7 +311,7 @@ function analyseCricketScore(
 
           //Team NRR is calculated for overs from 0 to oversplayed to check i how many least overs to chase the runs scored by the opposition team
           let teamNRR = calculateNRR(
-            team.runsFor,
+            team.runsFor + 1,
             team.oversFor,
             +runs,
             over,
@@ -326,12 +327,12 @@ function analyseCricketScore(
             oppTeam.oversFor,
             +runs,
             +matchOvers,
-            oppTeam.runsAgainst,
+            oppTeam.runsAgainst + 1,
             oppTeam.oversAgainst,
             over,
             flag
           );
-
+            console.log(over,teamNRR, oppositionTeamNRR)
           //lowerPositionNRR is calculated to maintain the lower bound nrr to limit your team on the desired position
           const lowerPositionNRR =
             onPosition.team == oppTeam.team
@@ -359,7 +360,7 @@ function analyseCricketScore(
       }
 
       nrrLowerBound = calculateNRR(
-        team.runsFor,
+        team.runsFor + 1,
         team.oversFor,
         +runs,
         arr[0], //here arr[0] is the highest over from the over range
@@ -370,7 +371,7 @@ function analyseCricketScore(
       );
 
       nrrUpperBound = calculateNRR(
-        team.runsFor,
+        team.runsFor + 1,
         team.oversFor,
         +runs,
         arr[arr.length - 1], //here arr[arr.length - 1] is the lowest over from the over range
